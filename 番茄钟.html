@@ -5,118 +5,159 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🍅 番茄钟</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
   :root {
-    --work: #e65c4b;
-    --break: #4caf84;
-    --bg: #1a1a2e;
-    --card: #16213e;
-    --text: #e0e0e0;
+    --work: #ef4444;
+    --work-glow: rgba(239,68,68,0.35);
+    --break: #10b981;
+    --break-glow: rgba(16,185,129,0.35);
+    --bg: #09090f;
+    --surface: #16162a;
+    --surface2: #1e1e38;
+    --border: #2a2a50;
+    --text: #e8ecf2;
+    --text2: #8b94a8;
+    --text3: #5a6078;
   }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
     display: flex; justify-content: center; align-items: center;
     min-height: 100vh; background: var(--bg);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    user-select: none;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    user-select: none; overflow: hidden;
   }
-  .container { text-align: center; }
-  .timer-ring {
-    position: relative;
-    width: 320px; height: 320px;
-    margin: 0 auto 32px;
-  }
-  svg { transform: rotate(-90deg); }
-  .ring-bg { fill: none; stroke: #2a2a4a; stroke-width: 8; }
-  .ring-fg {
-    fill: none; stroke: var(--work); stroke-width: 8;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.3s, stroke 0.5s;
-  }
-  .ring-fg.break-mode { stroke: var(--break); }
-  .time-display {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
-  .time { font-size: 72px; font-weight: 300; color: #fff; letter-spacing: 2px; }
-  .label { font-size: 14px; color: #aaa; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px; }
-  .session-count { font-size: 13px; color: #666; margin-top: 8px; }
-  .controls { display: flex; gap: 16px; justify-content: center; margin-top: 24px; }
-  button {
-    border: none; border-radius: 50px;
-    padding: 12px 32px; font-size: 15px;
-    cursor: pointer; font-weight: 600;
-    transition: all 0.2s;
-  }
-  button:active { transform: scale(0.95); }
-  .btn-start { background: var(--work); color: #fff; }
-  .btn-start:hover { background: #f07363; }
-  .btn-start.break-mode { background: var(--break); }
-  .btn-start.break-mode:hover { background: #5dbf94; }
-  .btn-reset { background: transparent; color: #888; border: 1px solid #444; }
-  .btn-reset:hover { color: #ccc; border-color: #666; }
 
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.06) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.04) 0%, transparent 55%);
+    transition: background 0.8s;
+  }
+  body.break::before {
+    background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.06) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.03) 0%, transparent 55%);
+  }
+
+  .container { position: relative; z-index: 1; text-align: center; }
+
+  /* 模式切换 */
   .mode-switch {
-    display: flex; gap: 4px; background: var(--card);
-    border-radius: 50px; padding: 4px;
-    margin-bottom: 32px;
+    display: inline-flex; gap: 2px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 50px; padding: 4px; margin-bottom: 40px;
   }
   .mode-btn {
-    border: none; border-radius: 50px;
-    padding: 8px 20px; font-size: 13px;
-    cursor: pointer; background: transparent;
-    color: #777; font-weight: 600;
-    transition: all 0.3s;
+    border: none; border-radius: 50px; padding: 10px 24px;
+    font-size: 14px; cursor: pointer; background: transparent;
+    color: var(--text3); font-weight: 500; font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative; z-index: 1; white-space: nowrap;
   }
   .mode-btn.active {
-    background: #2a2a5a; color: #fff;
+    color: #fff; font-weight: 600;
+    background: var(--work); box-shadow: 0 4px 16px var(--work-glow);
   }
-  .mode-btn.active.work-active { background: var(--work); }
-  .mode-btn.active.break-active { background: var(--break); }
+  .mode-btn.active.break { background: var(--break); box-shadow: 0 4px 16px var(--break-glow); }
+  .mode-btn:hover:not(.active) { color: var(--text2); }
 
-  .preset-time {
-    display: flex; gap: 12px; justify-content: center;
-    margin-top: 20px;
+  /* 计时圆环 */
+  .timer-ring {
+    position: relative; width: 340px; height: 340px; margin: 0 auto 36px;
   }
+  svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 10; stroke-linecap: round; }
+  .ring-fg {
+    fill: none; stroke: var(--work); stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;
+    filter: drop-shadow(0 0 10px var(--work-glow));
+  }
+  .ring-fg.break { stroke: var(--break); filter: drop-shadow(0 0 10px var(--break-glow)); }
+
+  .time-display { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .time {
+    font-size: 74px; font-weight: 300; color: #fff;
+    letter-spacing: 3px; font-variant-numeric: tabular-nums;
+    font-family: 'Inter', 'SF Mono', 'Consolas', monospace;
+  }
+  .label { font-size: 13px; color: var(--text2); margin-top: 4px; text-transform: uppercase; letter-spacing: 5px; font-weight: 500; }
+  .session-count { font-size: 12px; color: var(--text3); margin-top: 10px; font-weight: 500; }
+
+  /* 按钮 */
+  .controls { display: flex; gap: 14px; justify-content: center; margin-top: 28px; align-items: center; }
+  button { border: none; border-radius: 50px; font-size: 15px; cursor: pointer; font-weight: 600; font-family: inherit; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); outline: none; }
+
+  .btn-start {
+    padding: 14px 48px; color: #fff; font-size: 16px;
+    background: var(--work); box-shadow: 0 4px 22px var(--work-glow);
+  }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(239,68,68,0.45); }
+  .btn-start.break { background: var(--break); box-shadow: 0 4px 22px var(--break-glow); }
+  .btn-start.break:hover { box-shadow: 0 8px 30px rgba(16,185,129,0.45); }
+  .btn-start:active { transform: scale(0.96); }
+
+  .btn-skip {
+    padding: 14px 24px; background: transparent; color: var(--text3);
+    border: 1px solid var(--border); font-size: 14px;
+  }
+  .btn-skip:hover { color: var(--text); border-color: var(--text2); }
+
+  .btn-reset {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: transparent; color: var(--text3); border: 1px solid var(--border);
+    font-size: 18px; padding: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .btn-reset:hover { color: var(--text); border-color: var(--text2); transform: rotate(90deg); }
+
+  /* 预设 */
+  .preset-time { display: flex; gap: 8px; justify-content: center; margin-top: 32px; }
   .preset {
-    background: var(--card); border: none;
-    color: #888; padding: 6px 14px; border-radius: 20px;
-    font-size: 12px; cursor: pointer;
-    transition: all 0.2s;
+    background: var(--surface2); border: 1px solid transparent;
+    color: var(--text3); padding: 8px 18px; border-radius: 50px;
+    font-size: 13px; cursor: pointer; font-weight: 500;
+    transition: all 0.25s;
   }
-  .preset:hover, .preset.active { color: #fff; background: #2a2a5a; }
+  .preset:hover { color: var(--text2); border-color: var(--border); }
+  .preset.active { color: #fff; border-color: var(--work); box-shadow: 0 0 0 1px rgba(239,68,68,0.15); }
+  body.break .preset.active { border-color: var(--break); box-shadow: 0 0 0 1px rgba(16,185,129,0.15); }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-  .running .time { animation: pulse 2s infinite; }
+  /* 动画 */
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .running .time { animation: pulse 2s ease-in-out infinite; }
+
+  @keyframes flash { 0%, 100% { opacity: 1; } 25% { opacity: 0.2; } 75% { opacity: 0.2; } }
+  .finished .time { animation: flash 0.55s ease-in-out 3; color: var(--work); }
 </style>
 </head>
 <body>
+
 <div class="container">
   <div class="mode-switch">
-    <button class="mode-btn active work-active" data-mode="work">🍅 专注</button>
+    <button class="mode-btn active" data-mode="work">🍅 专注</button>
     <button class="mode-btn" data-mode="shortBreak">☕ 短休</button>
     <button class="mode-btn" data-mode="longBreak">🌿 长休</button>
   </div>
 
   <div class="timer-ring">
-    <svg width="320" height="320" viewBox="0 0 320 320">
-      <circle class="ring-bg" cx="160" cy="160" r="148"/>
-      <circle id="ring" class="ring-fg" cx="160" cy="160" r="148"
-        stroke-dasharray="929.9" stroke-dashoffset="0"/>
+    <svg width="340" height="340" viewBox="0 0 340 340">
+      <circle class="ring-bg" cx="170" cy="170" r="155"/>
+      <circle id="ring" class="ring-fg" cx="170" cy="170" r="155"
+        stroke-dasharray="973.9" stroke-dashoffset="0"/>
     </svg>
-    <div class="time-display" id="display">
+    <div class="time-display">
       <div class="time" id="time">25:00</div>
       <div class="label" id="status">专注</div>
-      <div class="session-count" id="count">🍅 × 0</div>
+      <div class="session-count" id="count">完成 0 个番茄</div>
     </div>
   </div>
 
   <div class="controls">
-    <button class="btn-reset" id="btnReset">重置</button>
-    <button class="btn-start" id="btnStart">开始</button>
+    <button class="btn-reset" id="btnReset" title="重置">↺</button>
+    <button class="btn-start" id="btnStart">开始专注</button>
+    <button class="btn-skip" id="btnSkip" title="跳过">跳过 →</button>
   </div>
 
   <div class="preset-time">
@@ -128,138 +169,141 @@
 </div>
 
 <script>
-const CIRCUMFERENCE = 2 * Math.PI * 148; // 929.9
+const C = 2 * Math.PI * 155;
 const ring = document.getElementById('ring');
 const timeEl = document.getElementById('time');
 const statusEl = document.getElementById('status');
 const countEl = document.getElementById('count');
 const btnStart = document.getElementById('btnStart');
 const btnReset = document.getElementById('btnReset');
+const btnSkip = document.getElementById('btnSkip');
 const container = document.querySelector('.container');
+const body = document.body;
 
 const MODES = {
-  work: { label: '专注', minutes: 25, icon: '🍅' },
-  shortBreak: { label: '短休', minutes: 5, icon: '☕' },
-  longBreak: { label: '长休', minutes: 15, icon: '🌿' },
+  work:       { label: '专注', minutes: 25, btn: '开始专注' },
+  shortBreak: { label: '短休', minutes: 5,  btn: '开始休息' },
+  longBreak:  { label: '长休', minutes: 15, btn: '开始休息' },
 };
 
 let mode = 'work';
-let totalSeconds = MODES[mode].minutes * 60;
-let remaining = totalSeconds;
-let interval = null;
+let total = MODES[mode].minutes * 60;
+let left = total;
+let timer = null;
 let sessions = 0;
 
-function fmt(t) {
-  const m = Math.floor(t / 60).toString().padStart(2, '0');
-  const s = (t % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+function fmt(t) { return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`; }
+
+function beep() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+    [0, 0.15, 0.3].forEach((t,i) => o.frequency.setValueAtTime(i?660:880, ctx.currentTime+t));
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.5);
+  } catch(e){}
 }
 
-function updateDisplay() {
-  timeEl.textContent = fmt(remaining);
-  const progress = remaining / totalSeconds;
-  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
-  ring.classList.toggle('break-mode', mode !== 'work');
-  btnStart.classList.toggle('break-mode', mode !== 'work');
-  timeEl.style.color = mode === 'work' ? '#fff' : '#e0e0e0';
+function isBreak() { return mode !== 'work'; }
+
+function refresh() {
+  timeEl.textContent = fmt(left);
+  ring.style.strokeDashoffset = C * (1 - left/total);
 }
 
-function switchMode(newMode) {
-  mode = newMode;
-  totalSeconds = MODES[mode].minutes * 60;
-  remaining = totalSeconds;
-  ring.style.strokeDashoffset = 0;
-  ring.classList.toggle('break-mode', mode !== 'work');
-  btnStart.classList.toggle('break-mode', mode !== 'work');
+function syncUI() {
+  const b = isBreak();
+  ring.classList.toggle('break', b);
+  btnStart.classList.toggle('break', b);
+  body.classList.toggle('break', b);
+  timeEl.style.color = b ? '#34d399' : '#fff';
   statusEl.textContent = MODES[mode].label;
-  timeEl.textContent = fmt(remaining);
-  document.querySelectorAll('.mode-btn').forEach(b => { b.classList.remove('active', 'work-active', 'break-active'); });
-  const activeBtn = document.querySelector(`[data-mode="${mode}"]`);
-  if (activeBtn) {
-    activeBtn.classList.add('active');
-    activeBtn.classList.add(mode === 'work' ? 'work-active' : 'break-active');
+
+  document.querySelectorAll('.mode-btn').forEach(el => {
+    el.classList.remove('active','break');
+    if (el.dataset.mode === mode) { el.classList.add('active'); if (b) el.classList.add('break'); }
+  });
+  document.querySelectorAll('.preset').forEach(p => {
+    p.classList.toggle('active', +p.dataset.min === MODES.work.minutes);
+  });
+}
+
+function switchMode(m) {
+  mode = m; total = MODES[m].minutes * 60; left = total;
+  ring.style.strokeDashoffset = 0;
+  container.classList.remove('running','finished');
+  timeEl.textContent = fmt(left);
+  btnStart.textContent = MODES[m].btn;
+  syncUI();
+}
+
+function done() {
+  clearInterval(timer); timer = null;
+  container.classList.add('finished');
+  container.classList.remove('running');
+  setTimeout(() => container.classList.remove('finished'), 1800);
+  beep();
+
+  if (mode === 'work') {
+    sessions++;
+    countEl.textContent = `完成 ${sessions} 个番茄`;
+    setTimeout(() => switchMode(sessions % 4 === 0 ? 'longBreak' : 'shortBreak'), 1500);
+  } else {
+    setTimeout(() => switchMode('work'), 1500);
   }
-  document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
-  const matchPreset = document.querySelector(`.preset[data-min="${MODES[mode].minutes}"]`);
-  if (matchPreset) matchPreset.classList.add('active');
+  refresh();
+  btnStart.textContent = MODES[mode].btn;
 }
 
 function tick() {
-  if (remaining <= 0) {
-    clearInterval(interval);
-    interval = null;
-    btnStart.textContent = '开始';
-    container.classList.remove('running');
-    if (mode === 'work') {
-      sessions++;
-      countEl.textContent = `🍅 × ${sessions}`;
-      new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAf39/f4B/f3+Af3+AgH+AgICAAAAAgH9/f39/gIB/f3+AgH+AgICAf39/f38AAAAAgH+AgICAgICAgIGAgICAgICAgIGAf39/f39/f39/gICAgICAgIGAgH9/f39/f39/f39/gICAgICAgIGAgH9/f39/f39/f3+AgICAgICAgICAf39/f39/f39/f3+AgICAgICAgICAf39/f39/f39/f4CAgICAgICAgIB/f39/f39/f3+AgICAgICAgICAf39/f39/f3+AgICAgICAgICAAAAA').play().catch(()=>{});
-      setTimeout(() => switchMode(sessions % 4 === 0 ? 'longBreak' : 'shortBreak'), 600);
-    } else {
-      switchMode('work');
-    }
-    if (!interval) {
-      updateDisplay();
-      btnStart.textContent = '开始';
-    }
-    return;
-  }
-  remaining--;
-  updateDisplay();
+  if (left <= 0) return done();
+  left--; refresh();
 }
 
 btnStart.addEventListener('click', () => {
-  if (interval) {
-    clearInterval(interval);
-    interval = null;
-    btnStart.textContent = '继续';
-    container.classList.remove('running');
-  } else {
-    if (remaining <= 0) switchMode(mode);
-    interval = setInterval(tick, 1000);
-    btnStart.textContent = '暂停';
-    container.classList.add('running');
-  }
+  if (timer) { clearInterval(timer); timer = null; btnStart.textContent = '继续'; container.classList.remove('running'); }
+  else { if (left <= 0) switchMode(mode); timer = setInterval(tick, 1000); btnStart.textContent = '暂停'; container.classList.add('running'); container.classList.remove('finished'); }
 });
 
 btnReset.addEventListener('click', () => {
-  clearInterval(interval);
-  interval = null;
-  remaining = totalSeconds;
-  updateDisplay();
-  btnStart.textContent = '开始';
-  container.classList.remove('running');
+  clearInterval(timer); timer = null; left = total;
+  container.classList.remove('running','finished');
+  ring.style.strokeDashoffset = 0;
+  timeEl.textContent = fmt(left);
+  btnStart.textContent = MODES[mode].btn;
 });
 
-document.querySelectorAll('.mode-btn').forEach(b => {
-  b.addEventListener('click', () => {
-    clearInterval(interval);
-    interval = null;
-    btnStart.textContent = '开始';
-    container.classList.remove('running');
-    switchMode(b.dataset.mode);
+btnSkip.addEventListener('click', () => {
+  clearInterval(timer); timer = null; left = 0; refresh(); done();
+});
+
+document.querySelectorAll('.mode-btn').forEach(el => {
+  el.addEventListener('click', () => {
+    clearInterval(timer); timer = null;
+    container.classList.remove('running','finished');
+    switchMode(el.dataset.mode);
   });
 });
 
-document.querySelectorAll('.preset').forEach(b => {
-  b.addEventListener('click', () => {
-    const min = parseInt(b.dataset.min);
+document.querySelectorAll('.preset').forEach(el => {
+  el.addEventListener('click', () => {
+    const min = +el.dataset.min;
     MODES.work.minutes = min;
     document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
-    b.classList.add('active');
+    el.classList.add('active');
     if (mode === 'work') {
-      clearInterval(interval);
-      interval = null;
-      btnStart.textContent = '开始';
-      container.classList.remove('running');
-      totalSeconds = min * 60;
-      remaining = totalSeconds;
-      updateDisplay();
+      clearInterval(timer); timer = null; total = min*60; left = total;
+      container.classList.remove('running','finished');
+      ring.style.strokeDashoffset = 0;
+      timeEl.textContent = fmt(left);
+      btnStart.textContent = MODES.work.btn;
     }
   });
 });
 
-updateDisplay();
+refresh(); syncUI();
 </script>
 </body>
 </html>
